@@ -26,8 +26,11 @@ module Qless
     # I'm not sure what this option is -- I'll look it up later
     # set :static, true
 
-    def initialize(clients)
+    attr_reader :options
+
+    def initialize(clients, options = {})
       @clients = clients
+      @options = options
       super()
     end
 
@@ -63,7 +66,7 @@ module Qless
       def prev_page_url
         page_url -1
       end
-      
+
       def current_page
         @current_page ||= begin
           Integer(params[:page])
@@ -143,6 +146,18 @@ module Qless
             if obj['paused'] then
               results[obj['name']][:counts][:paused] += 1
             end
+          end
+        end
+
+        ignore_empty = options[:ignore_empty_queues]
+        ignore_empty = params[:ignore_empty_queues] == "true" if params[:ignore_empty_queues].present?
+
+        if ignore_empty
+          states = %w(running waiting throttled scheduled stalled depends recurring).collect(&:to_sym)
+
+          results = results.reject do |queue, hash|
+            total = states.reduce(0) { |sum, state| sum += hash[:counts][state] }
+            total == 0
           end
         end
         results.values.sort_by { |k| k[:name] }
@@ -279,18 +294,18 @@ module Qless
       total = 0
       tagged = @clients.inject({}) do |h, client|
         qless_client = client.client
-        
+
         # Only get the first 5 found
         tagged_jobs = qless_client.jobs.tagged(params[:tag], 0, 5)
-        
+
         total += tagged_jobs['total']
         jobs = tagged_jobs['jobs'].map { |jid| qless_client.jobs[jid] }
-        
+
         h[client.name] = {
           total: tagged_jobs['total'],
           jobs: jobs
         }
-        
+
         h
       end
 
