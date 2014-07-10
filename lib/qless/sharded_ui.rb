@@ -287,7 +287,6 @@ module Qless
     end
 
     get '/?' do
-      @filter_empty = true
       erb :overview, :layout => true, :locals => { :title => "Overview" }
     end
 
