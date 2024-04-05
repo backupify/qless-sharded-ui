@@ -7,4 +7,4 @@ group :development do
   gem 'debugger', :platform => :mri
 end
 
-gem 'thin' # needed by qless-web binary
+gem 'thin' , '>= 1.6.0' # needed by qless-web binary
